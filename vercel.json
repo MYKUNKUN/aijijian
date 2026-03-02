@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "destination": "https://www.aijijian.top/$1",
+      "permanent": true
+    }
+  ]
+}
