@@ -1,0 +1,47 @@
+name: 自动生成 Sitemap
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 生成 sitemap.xml
+        run: |
+          cat > sitemap.xml << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+EOF
+
+          base="https://www.aijijian.top"
+          date=$(date +%Y-%m-%d)
+
+          # 扫描所有 html/htm 文件（排除 vendor 目录）
+          find . -maxdepth 3 -name "*.html" -o -name "*.htm" | grep -v vendor | sort | while read f; do
+            path=${f:1}
+            echo "  <url>" >> sitemap.xml
+            echo "    <loc>$base$path</loc>" >> sitemap.xml
+            echo "    <lastmod>$date</lastmod>" >> sitemap.xml
+            echo "    <changefreq>weekly</changefreq>" >> sitemap.xml
+            echo "    <priority>0.8</priority>" >> sitemap.xml
+            echo "  </url>" >> sitemap.xml
+          done
+
+          # 首页单独设置权重 1.0（最高优先级）
+          sed -i '/<urlset>/a\  <url>\n    <loc>'"$base"'<\/loc>\n    <lastmod>'"$date"'<\/lastmod>\n    <changefreq>weekly<\/changefreq>\n    <priority>1.0<\/priority>\n  <\/url>' sitemap.xml
+
+          echo "</urlset>" >> sitemap.xml
+
+      - name: 提交并推送更新
+        run: |
+          git config --global user.name "Auto Build"
+          git config --global user.email "actions@github.com"
+          git add sitemap.xml
+          # 如果没有变更则跳过提交，避免报错
+          git commit -m "自动更新 sitemap.xml" || exit 0
+          git push
